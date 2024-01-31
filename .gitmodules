@@ -1,0 +1,6 @@
+[submodule "web-template"]
+	path = web-template
+	url = https://github.com/saiSunkari19/web-template.git
+[submodule "playground"]
+	path = playground
+	url = https://github.com/saiSunkari19/playground.git
