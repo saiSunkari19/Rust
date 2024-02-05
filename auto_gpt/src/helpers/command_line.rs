@@ -2,19 +2,19 @@ use crossterm::{
     style::{Color, ResetColor, SetForegroundColor},
     ExecutableCommand,
 };
+use serde::{Deserialize, Serialize};
 
 use std::io::{stdin, stdout};
 
-
-pub enum PrintCommand  {
-    AICall, 
+#[derive(PartialEq, Serialize, Debug, Deserialize)]
+pub enum PrintCommand {
+    AICall,
     UnitTest,
-    Issue
+    Issue,
 }
 
-
 impl PrintCommand {
-    pub fn print_agent_message(&self, agent_pos : &str, agent_statment: &str){
+    pub fn print_agent_message(&self, agent_pos: &str, agent_statment: &str) {
         let mut stdout = stdout();
 
         let statement_color = match self {
@@ -29,10 +29,8 @@ impl PrintCommand {
         stdout.execute(SetForegroundColor(statement_color)).unwrap();
         println!("{}", agent_statment);
 
-        // Reset Color 
+        // Reset Color
         stdout.execute(ResetColor).unwrap();
-
-
     }
 }
 
@@ -52,15 +50,12 @@ pub fn get_user_response(question: &str) -> String {
 }
 
 
-
-
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
-    fn test_print_agent_message(){
-        PrintCommand::AICall.
-        print_agent_message("Managaing", "Testing testing");
+    fn test_print_agent_message() {
+        PrintCommand::AICall.print_agent_message("Managaing", "Testing testing");
     }
 }
