@@ -1,10 +1,10 @@
-use crate::models::general::llm::{ChatCompletion, Message};
+use crate::models::general::llm::{APIChoice, APIMessage, APIResponse, ChatCompletion, Message};
 use dotenv::dotenv;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{header, Client};
 use std::env;
 
-pub async fn call_gpt(msgs: Vec<Message>){
+pub async fn call_gpt(msgs: Vec<Message>) -> Result<String, Box<dyn std::error::Error + Send>> {
     dotenv().ok();
 
     // Extract API key infomation
@@ -19,15 +19,20 @@ pub async fn call_gpt(msgs: Vec<Message>){
 
     headers.insert(
         "authorization",
-        HeaderValue::from_str(&format!("Bearer {}", api_key)).unwrap(),
+        HeaderValue::from_str(&format!("Bearer {}", api_key))
+            .map_err(|e| -> Box<dyn std::error::Error + Send> { Box::new(e) })?,
     );
     headers.insert(
         "OpenAI-Organization",
-        HeaderValue::from_str(api_org.as_str()).unwrap(),
+        HeaderValue::from_str(api_org.as_str())
+            .map_err(|e| -> Box<dyn std::error::Error + Send> { Box::new(e) })?,
     );
 
     // Create Client
-    let client = Client::builder().default_headers(headers).build().unwrap();
+    let client = Client::builder()
+        .default_headers(headers)
+        .build()
+        .map_err(|e| -> Box<dyn std::error::Error + Send> { Box::new(e) })?;
 
     // Create chat completion
     let chat_completion = ChatCompletion {
@@ -36,34 +41,63 @@ pub async fn call_gpt(msgs: Vec<Message>){
         temperature: 0.1,
     };
 
-    // Trouble shooting
-
-    let response = client
+    // Let Extract API Response
+    let res: APIResponse = client
         .post(url)
         .json(&chat_completion)
         .send()
         .await
-        .unwrap();
+        .map_err(|e| -> Box<dyn std::error::Error + Send> { Box::new(e) })?
+        .json()
+        .await
+        .map_err(|e| -> Box<dyn std::error::Error + Send> { Box::new(e) })?;
 
+    // Trouble shooting
 
-    dbg!(response.text().await.unwrap());
+    // let response = client
+    //     .post(url)
+    //     .json(&chat_completion)
+    //     .send()
+    //     .await
+    //     .unwrap();
+
+    // dbg!(response.text().await.unwrap());
+    Ok(res.choices[0].message.content.clone())
 }
 
-
 #[cfg(test)]
-mod test{
+mod test {
+
+    use std::clone;
 
     use super::*;
 
     #[tokio::test]
-    async fn test_call_to_openai(){
-        let msg = Message{
-            role:"user".to_string(),
-            content: "Hi There, give me short replay".to_string()
+    async fn test_call_to_openai() {
+        let msg = Message {
+            role: "user".to_string(),
+            content: "Hi There, give me short replay".to_string(),
         };
 
         let msgs = vec![msg];
 
-        call_gpt(msgs).await;
+        let res = call_gpt(msgs).await;
+
+        //    if let Ok(res_str) = res {
+        //         dbg!(res_str);
+        //         assert!(true)
+        //    }else {
+        //        assert!(false)
+        //    }
+
+        match res {
+            Ok(res_str) => {
+                dbg!(res_str);
+                assert!(true)
+            }
+            Err(_) => {
+                assert!(false)
+            }
+        }
     }
 }
